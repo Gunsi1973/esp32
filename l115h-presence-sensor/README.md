@@ -34,7 +34,7 @@ unsigned long clear_time = 750;  // Delay before resetting movement detection (m
 - `TH2` adjusts presence sensitivity (higher = needs stronger reflection to detect presence).
 - `clear_time` defines how long the system waits before clearing movement status.
 
-### 2. **Mode Interpretation**
+### 2. **Mode Interpretation** (Guessing)
 The LD1115H sensor provides a "mode" value which we interpret as:
 | Mode | Meaning |
 |------|---------|
