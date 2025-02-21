@@ -1,10 +1,10 @@
-# L115H Presence & Motion Detection with ESP32
+# LD1115H Presence & Motion Detection with ESP32
 
 ## Overview
 This project integrates the **LD1115H Mini 24G Human Presence Sensor** with an **ESP32**, using UART communication to read motion and presence detection data. The code filters noisy data, improves real-time detection, and introduces configurable thresholds for movement and presence sensitivity.
 
 ## Features
-- **Detects motion (`mov`) and presence (`occ`)** using the L115H radar sensor.
+- **Detects motion (`mov`) and presence (`occ`)** using the LD1115H radar sensor.
 - **Filters out noise** and incorrect sensor data.
 - **Adjustable thresholds** for fine-tuning detection.
 - **Built-in debounce logic** to reduce false triggers.
@@ -15,8 +15,8 @@ This project integrates the **LD1115H Mini 24G Human Presence Sensor** with an *
 - LD1115H Mini 24G Human Presence Sensor
 - Dupont wires for UART connection
 
-## Wiring (ESP32 to L115H Sensor)
-| L115H Pin | ESP32 Pin |
+## Wiring (ESP32 to LD1115H Sensor)
+| LD1115H Pin | ESP32 Pin |
 |-----------|----------|
 | VCC (3.6-5V) | 3.3V or 5V |
 | GND | GND |
@@ -35,7 +35,7 @@ unsigned long clear_time = 750;  // Delay before resetting movement detection (m
 - `clear_time` defines how long the system waits before clearing movement status.
 
 ### 2. **Mode Interpretation**
-The L115H sensor provides a "mode" value which we interpret as:
+The LD1115H sensor provides a "mode" value which we interpret as:
 | Mode | Meaning |
 |------|---------|
 | 1 | Very light movement |
@@ -75,3 +75,4 @@ The sensor provides a signal strength, but there's no official formula to conver
 
 ## License
 This project is open-source under the **MIT License**.
+
