@@ -1,7 +1,7 @@
 #define RX_PIN 4
 #define TX_PIN 5
 
-HardwareSerial L115H_Serial(2);
+HardwareSerial LD1115H_Serial(2);
 
 // Adjustable sensitivity thresholds
 int TH1 = 1200;   // Motion sensitivity (higher = less sensitive)
@@ -25,13 +25,13 @@ String interpretMode(int mode) {
 
 void setup() {
   Serial.begin(115200);
-  L115H_Serial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
-  Serial.println("L115H Sensor started...");
+  LD1115H_Serial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+  Serial.println("LD1115H Sensor started...");
 }
 
 void loop() {
-  if (L115H_Serial.available()) {
-    String sensorData = L115H_Serial.readStringUntil('\n');  
+  if (LD1115H_Serial.available()) {
+    String sensorData = LD1115H_Serial.readStringUntil('\n');  
     sensorData.trim(); 
 
     int firstComma = sensorData.indexOf(',');
