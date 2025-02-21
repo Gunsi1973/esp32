@@ -1,3 +1,7 @@
+//output to serial monitor
+// This code is for the ESP32 microcontroller and uses the LD1115H presence sensor.
+// It reads the sensor data and interprets the movement and presence modes.
+
 #define RX_PIN 4
 #define TX_PIN 5
 
