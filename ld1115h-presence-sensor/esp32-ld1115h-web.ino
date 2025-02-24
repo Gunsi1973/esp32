@@ -1,7 +1,6 @@
 // Name: ESP32 LD1115H Sensor Web Monitor
 // Description: Monitor the LD1115H sensor data on a web page with live updates and a chart.
 
-
 const char* ssid = "XXX";
 const char* password = "XXX";
 
@@ -107,88 +106,93 @@ String getWebPage() {
       <title>ESP32 Sensor Monitor</title>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
         <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        h1 { color: #007BFF; }
-        #data { font-size: 1.5em; color: #333; margin-top: 20px; }
-        #chart-container { width: 100%; height: 60vh; } /* Full width, taller height */
-        canvas { width: 100% !important; height: 100% !important; } /* Force full size */
+          body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+          h1 { color: #007BFF; }
+          #data { font-size: 1.5em; color: #333; margin-top: 20px; }
+          #chart-container { width: 100%; height: 60vh; }
+          canvas { width: 100% !important; height: 100% !important; }
+          #controls { margin-top: 10px; }
+          input[type="number"] { width: 60px; padding: 5px; text-align: center; }
         </style>
 
-            <script>
-            let dataPoints = [];
-            let labels = [];
-            let chart;
-
-            function updateData() {
-                fetch('/data')
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('data').innerText = data;
-
-                    // Extract Signal Strength
-                    let match = data.match(/Signal: (\d+)/);
-                    if (match) {
-                    let signal = parseInt(match[1]);
-
-                    // Keep only the last 30 points
-                    if (dataPoints.length >= 30) {
-                        dataPoints.shift();
-                        labels.shift();
-                    }
-
-                    // Add new signal value
-                    dataPoints.push(signal);
-                    labels.push(new Date().toLocaleTimeString().split(" ")[0]); // Only time (HH:MM:SS)
-
-                    // Update chart
-                    chart.data.labels = labels;
-                    chart.data.datasets[0].data = dataPoints;
-                    chart.update();
-                    }
-                })
-                .catch(error => console.error("Error fetching data:", error));
-            }
-
-            window.onload = function() {
-                let ctx = document.getElementById('chart').getContext('2d');
-                chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Signal Strength',
-                        data: [],
-                        borderColor: 'blue',
-                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                    },
-                    options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { display: true },
-                        y: { 
-                        beginAtZero: true,
-                        suggestedMax: 20000 // << Diese Zeile ändern!
-                        }
-                    }
-                    }
-                });
-
-
-
-                setInterval(updateData, 1000); // Fetch new data every second
-            };
-            </script>
-
-        <div id="chart-container">
-        <canvas id="chart"></canvas>
+        <div id="controls">
+          <label for="dataPoints">Data Points:</label>
+          <input type="number" id="dataPoints" min="10" max="200" value="75">
         </div>
 
+        <script>
+          let maxDataPoints = 75;  // Default number of visible data points
+          let dataPoints = [];
+          let labels = [];
+          let chart;
+
+          document.getElementById("dataPoints").addEventListener("change", function() {
+            maxDataPoints = parseInt(this.value);
+          });
+
+          function updateData() {
+            fetch('/data')
+              .then(response => response.text())
+              .then(data => {
+                document.getElementById('data').innerText = data;
+
+                let match = data.match(/Signal: (\d+)/);
+                if (match) {
+                  let signal = parseInt(match[1]);
+
+                  // Adjust based on user-defined maxDataPoints
+                  while (dataPoints.length >= maxDataPoints) {
+                    dataPoints.shift();
+                    labels.shift();
+                  }
+
+                  dataPoints.push(signal);
+                  labels.push(new Date().toLocaleTimeString().split(" ")[0]);
+
+                  chart.data.labels = labels;
+                  chart.data.datasets[0].data = dataPoints;
+                  chart.update();
+                }
+              })
+              .catch(error => console.error("Error fetching data:", error));
+          }
+
+          window.onload = function() {
+            let ctx = document.getElementById('chart').getContext('2d');
+            chart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: [],
+                datasets: [{
+                  label: 'Signal Strength',
+                  data: [],
+                  borderColor: 'blue',
+                  backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                  fill: true,
+                  tension: 0.1
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: { display: true },
+                  y: { 
+                    beginAtZero: true,
+                    suggestedMax: function() { return Math.max(...dataPoints, 1000) + 1000; } 
+                  }
+                }
+              }
+            });
+
+            setInterval(updateData, 1000);
+          };
+        </script>
+
+        <div id="chart-container">
+          <canvas id="chart"></canvas>
+        </div>
     </head>
     <body>
       <h1>ESP32 Sensor Monitor</h1>
