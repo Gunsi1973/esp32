@@ -98,108 +98,158 @@ void loop() {
 // HTML + JavaScript for live updates & chart
 String getWebPage() {
   return R"rawliteral(
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>ESP32 Sensor Monitor</title>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-          h1 { color: #007BFF; }
-          #data { font-size: 1.5em; color: #333; margin-top: 20px; }
-          #chart-container { width: 100%; height: 60vh; }
-          canvas { width: 100% !important; height: 100% !important; }
-          #controls { margin-top: 10px; }
-          input[type="number"] { width: 60px; padding: 5px; text-align: center; }
-        </style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Sensor Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    h1 { color: #007BFF; }
+    #data { font-size: 1.5em; color: #333; margin-top: 20px; }
+    #chart-container { width: 100%; height: 60vh; }
+    canvas { width: 100% !important; height: 100% !important; }
+    #controls { margin-top: 10px; }
+    input[type="number"] { width: 60px; padding: 5px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Sensor Monitor</h1>
+  <p>Live sensor data:</p>
+  <p id="data">Waiting for data...</p>
 
-        <div id="controls">
-          <label for="dataPoints">Data Points:</label>
-          <input type="number" id="dataPoints" min="10" max="200" value="75">
-        </div>
+  <div id="controls">
+    <label for="dataPoints">Data Points:</label>
+    <input type="number" id="dataPoints" min="10" max="200" value="75">
+    <button id="downloadCsv">Download CSV</button>
+  </div>
 
-        <script>
-          let maxDataPoints = 75;  // Default number of visible data points
-          let dataPoints = [];
-          let labels = [];
-          let chart;
+  <div id="chart-container">
+    <canvas id="chart"></canvas>
+  </div>
 
-          document.getElementById("dataPoints").addEventListener("change", function() {
-            maxDataPoints = parseInt(this.value);
-          });
+  <script>
+    let maxDataPoints = 75;  // Live display limit
+    let maxStoragePoints = 21600;  // 6 hours of storage
+    let dataPoints = [];
+    let labels = [];
+    let storedData = [];
 
-          function updateData() {
-            fetch('/data')
-              .then(response => response.text())
-              .then(data => {
-                document.getElementById('data').innerText = data;
+    document.getElementById("dataPoints").addEventListener("change", function() {
+      maxDataPoints = parseInt(this.value);
+    });
 
-                let match = data.match(/Signal: (\d+)/);
-                if (match) {
-                  let signal = parseInt(match[1]);
+    document.getElementById('downloadCsv').addEventListener('click', function() {
+      let csvContent = "data:text/csv;charset=utf-8,Time,Signal Strength\n";
+      storedData.forEach(entry => {
+        csvContent += `${entry.time},${entry.value}\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "sensor_data_6h.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
 
-                  // Adjust based on user-defined maxDataPoints
-                  while (dataPoints.length >= maxDataPoints) {
-                    dataPoints.shift();
-                    labels.shift();
-                  }
+    function getColor(signal) {
+      if (signal < 5000) return 'green';
+      if (signal < 15000) return 'yellow';
+      return 'red';
+    }
 
-                  dataPoints.push(signal);
-                  labels.push(new Date().toLocaleTimeString().split(" ")[0]);
+    function updateData() {
+      fetch('/data')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('data').innerText = data;
 
-                  chart.data.labels = labels;
-                  chart.data.datasets[0].data = dataPoints;
-                  chart.update();
-                }
-              })
-              .catch(error => console.error("Error fetching data:", error));
+          let match = data.match(/Signal: (\d+)/);
+          if (match) {
+            let signal = parseInt(match[1]);
+            let timestamp = new Date().toLocaleTimeString().split(" ")[0];
+
+            // Manage live data (for graph display)
+            while (dataPoints.length >= maxDataPoints) {
+              dataPoints.shift();
+              labels.shift();
+            }
+            dataPoints.push(signal);
+            labels.push(timestamp);
+
+            // Store data for CSV (only last 6 hours)
+            if (storedData.length >= maxStoragePoints) {
+              storedData.shift();  // Remove oldest entry
+            }
+            storedData.push({ time: timestamp, value: signal });
+
+            // Update chart color
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = dataPoints;
+            chart.data.datasets[0].borderColor = getColor(signal);
+            chart.data.datasets[0].backgroundColor = getColor(signal) + '33';
+            chart.update();
           }
+        })
+        .catch(error => console.error("Error fetching data:", error));
+    }
 
-          window.onload = function() {
-            let ctx = document.getElementById('chart').getContext('2d');
-            chart = new Chart(ctx, {
-              type: 'line',
-              data: {
-                labels: [],
-                datasets: [{
-                  label: 'Signal Strength',
-                  data: [],
-                  borderColor: 'blue',
-                  backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                  fill: true,
-                  tension: 0.1
-                }]
+    window.onload = function() {
+      let ctx = document.getElementById('chart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Signal Strength',
+            data: [],
+            borderColor: 'blue',
+            backgroundColor: 'rgba(0, 123, 255, 0.2)',
+            fill: true,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { display: true },
+            y: { 
+              beginAtZero: true,
+              suggestedMax: function() { return Math.max(...dataPoints, 1000) + 1000; } 
+            }
+          },
+          plugins: {
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'xy'
               },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  x: { display: true },
-                  y: { 
-                    beginAtZero: true,
-                    suggestedMax: function() { return Math.max(...dataPoints, 1000) + 1000; } 
-                  }
+              zoom: {
+                enabled: true,
+                mode: 'xy',
+                speed: 0.1,
+                limits: {
+                  x: { min: 10, max: 21600 },
+                  y: { min: 0 }
                 }
               }
-            });
+            }
+          }
+        }
+      });
+      setInterval(updateData, 1000);
+    };
+  </script>
+</body>
+</html>
 
-            setInterval(updateData, 1000);
-          };
-        </script>
 
-        <div id="chart-container">
-          <canvas id="chart"></canvas>
-        </div>
-    </head>
-    <body>
-      <h1>ESP32 Sensor Monitor</h1>
-      <p>Live sensor data:</p>
-      <p id="data">Waiting for data...</p>
-      <canvas id="chart"></canvas>
-    </body>
-    </html>
+
   )rawliteral";
 }
