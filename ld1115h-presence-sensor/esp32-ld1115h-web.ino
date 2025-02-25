@@ -1,24 +1,35 @@
-// Name: ESP32 LD1115H Sensor Web Monitor
-// Description: Monitor the LD1115H sensor data on a web page with live updates and a chart.
+// ================================================================
+// ESP32 LD1115H Sensor Web Monitor
+// ================================================================
+// Purpose: This script reads movement data from the LD1115H sensor
+// and provides a web-based dashboard with live updates and a chart.
+// ================================================================
 
-const char* ssid = "XXX";
-const char* password = "XXX";
-
+// Includes
 #include <WiFi.h>
 #include <WebServer.h>
 
-#define RX_PIN 4
-#define TX_PIN 5
+// === CONFIGURABLE PARAMETERS ===
+const char* WIFI_SSID = "xxx";                   // WiFi SSID
+const char* WIFI_PASSWORD = "xxx";     // WiFi Password
 
-HardwareSerial LD1115H_Serial(2);
+const int RX_PIN = 4;  // ESP32 UART RX (connect to sensor TX)
+const int TX_PIN = 5;  // ESP32 UART TX (connect to sensor RX)
+const long SERIAL_BAUD_RATE = 115200;  // Serial Monitor baud rate
+const long SENSOR_BAUD_RATE = 115200;  // LD1115H sensor baud rate
+const int SERVER_PORT = 80;  // Web server port
+const unsigned long CLEAR_TIME_MS = 2000;  // Time before "No movement detected" (in milliseconds)
 
-WebServer server(80);
+// === GLOBAL VARIABLES ===
+HardwareSerial LD1115H_Serial(2);  // UART2 for the sensor
+WebServer server(SERVER_PORT);  // Web server instance
 
-String sensorData = "Waiting for data...";
-unsigned long last_movement_time = 0;
-unsigned long clear_time = 2000;  // 2 Sekunden bis "No movement detected" gesetzt wird
+String sensorData = "Waiting for data...";  // Stores sensor readings
+unsigned long last_movement_time = 0;  // Tracks last detected movement
 
-// Function to interpret sensor mode
+// ================================================================
+// Function: Interpret sensor mode and return readable text
+// ================================================================
 String interpretMode(int mode) {
   switch (mode) {
     case 1: return "Very light movement";
@@ -32,11 +43,15 @@ String interpretMode(int mode) {
   }
 }
 
+// ================================================================
+// Function: Setup ESP32 - Initialize Serial, WiFi, and Web Server
+// ================================================================
 void setup() {
-  Serial.begin(115200);
-  LD1115H_Serial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+  Serial.begin(SERIAL_BAUD_RATE);
+  LD1115H_Serial.begin(SENSOR_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
 
-  WiFi.begin(ssid, password);
+  // Connecting to WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -48,18 +63,16 @@ void setup() {
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  // Web routes
-  server.on("/", []() {
-    server.send(200, "text/html", getWebPage());
-  });
-
-  server.on("/data", []() {
-    server.send(200, "text/plain", sensorData);
-  });
+  // Setup Web Routes
+  server.on("/", []() { server.send(200, "text/html", getWebPage()); });
+  server.on("/data", []() { server.send(200, "text/plain", sensorData); });
 
   server.begin();
 }
 
+// ================================================================
+// Function: Main Loop - Read Sensor Data and Serve Web Requests
+// ================================================================
 void loop() {
   if (LD1115H_Serial.available()) {
     String rawData = LD1115H_Serial.readStringUntil('\n');
@@ -87,15 +100,17 @@ void loop() {
     }
   }
 
-  // If no movement for `clear_time`, set "No movement detected"
-  if (millis() - last_movement_time > clear_time) {
+  // Reset to "No movement detected" if no movement for defined time
+  if (millis() - last_movement_time > CLEAR_TIME_MS) {
     sensorData = "🔻 No movement detected.";
   }
 
   server.handleClient();
 }
 
-// HTML + JavaScript for live updates & chart
+// ================================================================
+// Function: HTML + JavaScript Web Interface for Sensor Dashboard
+// ================================================================
 String getWebPage() {
   return R"rawliteral(
 
@@ -250,6 +265,5 @@ String getWebPage() {
 </html>
 
 
-
-  )rawliteral";
+)rawliteral";
 }
