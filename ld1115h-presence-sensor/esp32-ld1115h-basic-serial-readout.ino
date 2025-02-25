@@ -1,5 +1,9 @@
-#define RX_PIN 16
-#define TX_PIN 17
+// for troubleshootin purposes
+// prints out serial communication on serial interface/monitor
+
+
+#define RX_PIN 4
+#define TX_PIN 5
 
 HardwareSerial LD1115H_Serial(2);  // Use UART2 on ESP32
 
