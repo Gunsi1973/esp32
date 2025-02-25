@@ -32,7 +32,7 @@ The expected response contains key sensor parameters.
 | **Parameter**   | **Value** | **Description** |
 |---------------|---------|----------------|
 | `th1` | **130** | **Motion Detection Sensitivity** - Higher values make the sensor **less** sensitive to motion. Default is `120`. |
-| `th2` | **250** | **Presence Detection Sensitivity** - Affects detection of static humans. Usually not adjustable. |
+| `th2` | **250** | **Presence Detection Sensitivity** - Affects detection of static humans. |
 | `th_in` | **300** | **Unknown** - Possibly an internal threshold for signal processing. |
 | `output_mode` | **0** | **Output Mode** - `0` means standard ASCII text output. Other modes may be available. |
 | `tons` | **30** | **Output Hold Time** - Keeps the GPIO signal **active for 30 units** (likely milliseconds or seconds). |
