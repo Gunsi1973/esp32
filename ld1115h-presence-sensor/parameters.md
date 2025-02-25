@@ -41,24 +41,22 @@ The expected response contains key sensor parameters.
 ## Adjusting Sensor Parameters
 To change a setting, use the following command format:
 
-set <parameter>=<value>
+`set <parameter>=<value>`
 
 For example, to increase motion sensitivity:
 
-set th1=100
-
+`set th1=100`
 
 ### **Saving Changes**
 Changes must be **saved permanently** using:
 
-save
+`save`
 
 If `save` is not executed, settings will reset after a power cycle.
 
 ## Next Steps
 - If motion detection is **too sensitive**, increase `th1`.
 - If detection **lags too long**, reduce `tons` and `utons`.
-- Experiment with different values and observe the response.
 
 ---
 
